@@ -1,22 +1,36 @@
 import os #This will give us acces to the enviornment variables
-from flask import Flask, redirect
+from datetime import datetime
+from flask import Flask, redirect, render_template, request, session
 
 app = Flask(__name__) #This is a new application.
+app.secret_key = "randomstring123"
 messages = []
 
 def add_messages(username, message):
     """ Add messages to the messages list """
-    messages.append("{}: {}".format(username, message))
+    now = datetime.now().strftime("%H:%M:%S")
+    messages.append("({}) {}: {}".format(now, username, message))
 
 def get_all_messages():
     """Get all of the messages and separate them with a `br`"""
     return "<br>".join(messages)
 
 
-@app.route("/") #This is the app route decorator
-def index():  #This is the funcion that is going to be bound to our decorator.
+# @app.route("/", methods=["GET", "POST"])
+# def index():
+#     """Main page with instructions"""
+#     return "To send a message use: /USERNAME/MESSAGE"
+
+@app.route("/", methods=["GET", "POST"])
+def index():
     """Main page with instructions"""
-    return "To send a message use: /USERNAME/MESSAGE"
+    if request.method == "POST":
+        session["username"] = request.form["username"]
+
+    if "username" in session:
+        return redirect(session["username"])
+
+    return render_template("index.html")
 
 @app.route("/<username>")
 def user(username):
@@ -27,9 +41,10 @@ def user(username):
 def send_message(username, message):
     """Create a new message and redirect back to the chat page"""
     add_messages(username, message)
-    return redirect("/" + username)
+    # return redirect("/" + username)
+    return get_all_messages()
 
 if __name__ =="__main__":
-    app.run(host=os.getenv("IP"),
-       port=os.getenv("PORT"),
-       debug=True)
+    app.run(host=os.getenv("IP", "0.0.0.0"),
+            port=os.getenv("PORT", 3000),
+            debug=True)
